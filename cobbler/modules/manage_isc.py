@@ -115,6 +115,8 @@ class IscManager:
 
                     interface["ip_address"] = ip
                     interface["netmask"] = netmask
+                    interface["dhcp_tag"] = dhcp_tag
+                    interface["dns_name"] = dns_name
                 else:
                     ip = interface["ip_address"]
                     netmask = interface["netmask"]
