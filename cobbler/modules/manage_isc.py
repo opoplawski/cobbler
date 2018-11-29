@@ -108,6 +108,7 @@ class IscManager:
                     interface["gateway"] = system.gateway
 
                 mac = interface["mac_address"]
+                interface["profile"] = profile.name
 
                 if interface["interface_type"] in ("bond_slave", "bridge_slave", "bonded_bridge_slave"):
 
