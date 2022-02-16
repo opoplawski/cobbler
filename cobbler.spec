@@ -202,6 +202,15 @@ if (( $1 == 1 )); then
     /etc/init.d/cobblerd start > /dev/null 2>&1
     /etc/init.d/httpd restart > /dev/null 2>&1
 fi
+# Fixup permission for world readable settings files
+chmod 640 %{_sysconfdir}/cobbler/settings
+chmod 600 %{_sysconfdir}/cobbler/mongodb.conf
+chmod 600 %{_sysconfdir}/cobbler/modules.conf
+chmod 640 %{_sysconfdir}/cobbler/users.conf
+chmod 640 %{_sysconfdir}/cobbler/users.digest
+chgrp %{apache_group} %{_sysconfdir}/cobbler/settings
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.conf
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.digest
 %preun
 # before last package is removed
 if (( $1 == 0 )); then
@@ -228,6 +237,15 @@ if (( $1 == 1 )); then
     sysconf_addword /etc/sysconfig/apache2 APACHE_MODULES wsgi > /dev/null 2>&1
     %service_add_post cobblerd.service
 fi
+# Fixup permission for world readable settings files
+chmod 640 %{_sysconfdir}/cobbler/settings
+chmod 600 %{_sysconfdir}/cobbler/mongodb.conf
+chmod 600 %{_sysconfdir}/cobbler/modules.conf
+chmod 640 %{_sysconfdir}/cobbler/users.conf
+chmod 640 %{_sysconfdir}/cobbler/users.digest
+chgrp %{apache_group} %{_sysconfdir}/cobbler/settings
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.conf
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.digest
 %preun
 # last package removal
 if (( $1 == 0 )); then
@@ -240,7 +258,6 @@ if (( $1 == 0 )); then
 fi
 %endif
 
-
 %if 0%{?fedora} >= 18
 %post
 # package install
@@ -249,6 +266,15 @@ if (( $1 == 1 )); then
     /usr/bin/systemctl start cobblerd.service > /dev/null 2>&1
     /usr/bin/systemctl restart httpd.service > /dev/null 2>&1
 fi
+# Fixup permission for world readable settings files
+chmod 640 %{_sysconfdir}/cobbler/settings
+chmod 600 %{_sysconfdir}/cobbler/mongodb.conf
+chmod 600 %{_sysconfdir}/cobbler/modules.conf
+chmod 640 %{_sysconfdir}/cobbler/users.conf
+chmod 640 %{_sysconfdir}/cobbler/users.digest
+chgrp %{apache_group} %{_sysconfdir}/cobbler/settings
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.conf
+chgrp %{apache_group} %{_sysconfdir}/cobbler/users.digest
 %preun
 # last package removal
 if (( $1 == 0 )); then
@@ -279,10 +305,36 @@ test "x$RPM_BUILD_ROOT" != "x" && rm -rf $RPM_BUILD_ROOT
 %{python2_sitelib}/cobbler*.egg-info
 
 # configuration
-%config(noreplace) %{_sysconfdir}/cobbler
+%dir %{_sysconfdir}/cobbler
+%config(noreplace) %{_sysconfdir}/cobbler/auth.conf
+%config(noreplace) %{_sysconfdir}/cobbler/cheetah_macros
+%config(noreplace) %{_sysconfdir}/cobbler/cobbler_bash
+%config(noreplace) %{_sysconfdir}/cobbler/completions
+%config(noreplace) %{_sysconfdir}/cobbler/dhcp.template
+%config(noreplace) %{_sysconfdir}/cobbler/dnsmasq.template
+%config(noreplace) %{_sysconfdir}/cobbler/genders.template
+%config(noreplace) %{_sysconfdir}/cobbler/import_rsync_whitelist
+%dir %{_sysconfdir}/cobbler/iso
+%config(noreplace) %{_sysconfdir}/cobbler/iso/buildiso.template
+%config(noreplace) %{_sysconfdir}/cobbler/ldap/
+%attr(600, root, root) %config(noreplace) %{_sysconfdir}/cobbler/modules.conf
+%attr(600, root, root) %config(noreplace) %{_sysconfdir}/cobbler/mongodb.conf
+%config(noreplace) %{_sysconfdir}/cobbler/named.template
+%config(noreplace) %{_sysconfdir}/cobbler/power/
+%config(noreplace) %{_sysconfdir}/cobbler/pxe/
+%dir %{_sysconfdir}/cobbler/reporting
+%config(noreplace) %{_sysconfdir}/cobbler/reporting/build_report_email.template
+%config(noreplace) %{_sysconfdir}/cobbler/rsync.exclude
+%config(noreplace) %{_sysconfdir}/cobbler/rsync.template
+%config(noreplace) %{_sysconfdir}/cobbler/secondary.template
+%attr(640, root, %{apache_group}) %config(noreplace) %{_sysconfdir}/cobbler/settings
+%config(noreplace) %{_sysconfdir}/cobbler/tftpd.template
+%attr(640, root, %{apache_group}) %config(noreplace) %{_sysconfdir}/cobbler/users.conf
+%attr(640, root, %{apache_group}) %config(noreplace) %{_sysconfdir}/cobbler/users.digest
+%config(noreplace) %{_sysconfdir}/cobbler/version
+%config(noreplace) %{_sysconfdir}/cobbler/zone.template
+%dir %{_sysconfdir}/cobbler/zone_templates
 %config(noreplace) %{_sysconfdir}/logrotate.d/cobblerd
-%dir %{apache_etc}
-%dir %{apache_etc}/conf.d
 %config(noreplace) %{apache_etc}/conf.d/cobbler.conf
 %exclude %{apache_etc}/conf.d/cobbler_web.conf
 %if 0%{?rhel} == 6
