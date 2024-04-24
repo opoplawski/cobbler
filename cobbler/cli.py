@@ -2332,6 +2332,9 @@ class CobblerCLI:
                 "--breed", dest="breed", help="the breed being imported"
             )
             self.parser.add_option(
+                "--osinfo", dest="osinfo", help="Use libosinfo to determine import information"
+            )
+            self.parser.add_option(
                 "--os-version", dest="os_version", help="the version being imported"
             )
             self.parser.add_option(

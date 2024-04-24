@@ -36,6 +36,7 @@ class Importer:
         rsync_flags: Optional[str] = None,
         arch: Optional[str] = None,
         breed: Optional[str] = None,
+        osinfo: Optional[str] = None,
         os_version: Optional[str] = None,
     ) -> bool:
         """
@@ -51,6 +52,7 @@ class Importer:
                             Cobbler webroot.
         :param arch: user-specified architecture
         :param breed: user-specified breed
+        :param osifno: user-specified libosinfo name to import
         :param os_version: user-specified OS version
         """
         self.api.log(
@@ -59,8 +61,11 @@ class Importer:
         )
 
         # Both --path and --name are required arguments.
-        if mirror_url is None or not mirror_url:
-            self.logger.info("import failed.  no --path specified")
+        if (mirror_url is None or not mirror_url) and (osinfo is None or not osinfo):
+            self.logger.info("import failed.  no --path or --osinfo specified")
+            return False
+        if mirror_url and osinfo:
+            self.logger.info("import failed.  both --path and --osinfo specified")
             return False
         if not mirror_name:
             self.logger.info("import failed.  no --name specified")
