@@ -105,8 +105,17 @@ DOCUMENTATION = '''
         type: boolean
         default: true
         version_added: 7.1.0
+      facts_level:
+        description:
+          - normal: Gather only system-level variables
+          - as_rendered: Gather all variables as rolled up by Cobbler
+        type: string
+        choices: [ 'normal', 'as_rendered' ]
+        default: normal
       extra_groups:
-        description: Comma or space-separated string containing extra groups to be added to the Cobbler inventory
+        description:
+          - Comma or space-separated string containing extra groups to be added to the Cobbler inventory
+          - Requires O(want_facts) to be set to V(true)
         type: string
         default: ""
 '''
@@ -120,7 +129,7 @@ password: secure
 '''
 
 from re import split
-from socket import error, gaierror
+import socket
 
 from ansible.errors import AnsibleError
 from ansible.module_utils.common.text.converters import to_text
@@ -149,7 +158,7 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
     def __init__(self):
         super(InventoryModule, self).__init__()
         self.cache_key = None
-        self.connection = None
+        self.cobbler_connection = None
 
     def verify_file(self, path):
         valid = False
@@ -164,13 +173,13 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
         if not HAS_XMLRPC_CLIENT:
             raise AnsibleError('Could not import xmlrpc client library')
 
-        if self.connection is None:
+        if self.cobbler_connection is None:
             self.display.vvvv(f'Connecting to {self.cobbler_url}\n')
-            self.connection = xmlrpc_client.Server(self.cobbler_url, allow_none=True)
+            self.cobbler_connection = xmlrpc_client.Server(self.cobbler_url, allow_none=True)
             self.token = None
             if self.get_option('user') is not None:
-                self.token = self.connection.login(text_type(self.get_option('user')), text_type(self.get_option('password')))
-        return self.connection
+                self.token = self.cobbler_connection.login(text_type(self.get_option('user')), text_type(self.get_option('password')))
+        return self.cobbler_connection
 
     def _init_cache(self):
         if self.cache_key not in self._cache:
@@ -185,13 +194,13 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
 
     def _get_profiles(self):
         if not self.use_cache or 'profiles' not in self._cache.get(self.cache_key, {}):
-            self.c = self._get_connection()
+            self.local_connection = self._get_connection()
             try:
                 if self.token is not None:
-                    data = self.c.get_profiles(self.token)
+                    data = self.local_connection.get_profiles(self.token)
                 else:
-                    data = self.c.get_profiles()
-            except (gaierror, error, xmlrpc_client.ProtocolError):
+                    data = self.local_connection.get_profiles()
+            except (socket.gaierror, socket.error, xmlrpc_client.ProtocolError):
                 self._reload_cache()
             else:
                 self._init_cache()
@@ -203,10 +212,10 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
         if not self.use_cache or 'systems' not in self._cache.get(self.cache_key, {}):
             try:
                 if self.token is not None:
-                    data = self.c.get_systems(self.token)
+                    data = self.local_connection.get_systems(self.token)
                 else:
-                    data = self.c.get_systems()
-            except (gaierror, error, xmlrpc_client.ProtocolError):
+                    data = self.local_connection.get_systems()
+            except (socket.gaierror, socket.error, xmlrpc_client.ProtocolError):
                 self._reload_cache()
             else:
                 self._init_cache()
@@ -379,21 +388,25 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
             if ipv6_address is not None:
                 self.inventory.set_variable(hostname, 'cobbler_ipv6_address', make_unsafe(ipv6_address))
 
-            if self.get_option('want_facts'):
+            if self.get_option('facts_level') == "as_rendered":
                 if self.token is not None:
-                    all_data = self.c.get_system_as_rendered(host['name'], self.token)
+                    all_data = self.local_connection.get_system_as_rendered(host['name'], self.token)
                 else:
-                    all_data = self.c.get_system_as_rendered(host['name'])
+                    all_data = self.local_connection.get_system_as_rendered(host['name'])
+                key = "mgmt_parameters"
+            elif self.get_option('facts_level') == "normal":
+                all_data = host
+                key = "autoinstall_meta"
 
                 # If user requests extra groups to be added to the Cobbler inventory,
                 if self.extra_groups:
 
                     # Gather each extra group, split by ',' or ' '
-                    for extra_group in split(',| ', self.extra_groups.split):
+                    for extra_group in split(',| ', self.extra_groups):
                         try:
                             # Gather each value of the extra group, split by ',' or ' '
                             # e.g. profile_role: 'test1,test2'
-                            for entry in split(',| ', all_data['mgmt_parameters'][extra_group]):
+                            for entry in split(',| ', all_data[key][extra_group]):
                                 self._add_safe_group_name(entry, child=hostname)
                         except KeyError as e:
                             self.display.vvvv(f"Could not find {e} value for {hostname}")
