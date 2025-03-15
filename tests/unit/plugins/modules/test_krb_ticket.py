@@ -8,7 +8,7 @@ __metaclass__ = type
 
 
 from ansible_collections.community.general.plugins.modules import krb_ticket
-from .helper import Helper, RunCommandMock  # pylint: disable=unused-import
+from .uthelper import UTHelper, RunCommandMock
 
 
-Helper.from_module(krb_ticket, __name__)
+UTHelper.from_module(krb_ticket, __name__, mocks=[RunCommandMock])

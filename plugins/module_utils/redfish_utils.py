@@ -119,7 +119,7 @@ class RedfishUtils(object):
 
                 # Note: This is also a fallthrough for properties that are
                 # arrays of objects.  Some services erroneously omit properties
-                # within arrays of objects when not configured, and it's
+                # within arrays of objects when not configured, and it is
                 # expecting the client to provide them anyway.
 
                 if req_pyld[prop] != cur_pyld[prop]:
@@ -1119,7 +1119,8 @@ class RedfishUtils(object):
         key = "Actions"
         reset_type_values = ['On', 'ForceOff', 'GracefulShutdown',
                              'GracefulRestart', 'ForceRestart', 'Nmi',
-                             'ForceOn', 'PushPowerButton', 'PowerCycle']
+                             'ForceOn', 'PushPowerButton', 'PowerCycle',
+                             'FullPowerCycle']
 
         # command should be PowerOn, PowerForceOff, etc.
         if not command.startswith('Power'):
@@ -1177,7 +1178,7 @@ class RedfishUtils(object):
             return response
 
         # If requested to wait for the service to be available again, block
-        # until it's ready
+        # until it is ready
         if wait:
             elapsed_time = 0
             start_time = time.time()
@@ -1190,7 +1191,7 @@ class RedfishUtils(object):
             while elapsed_time <= wait_timeout:
                 status = self.check_service_availability()
                 if status['available']:
-                    # It's available; we're done
+                    # It is available; we are done
                     break
                 time.sleep(5)
                 elapsed_time = time.time() - start_time
@@ -1813,7 +1814,7 @@ class RedfishUtils(object):
                     operation_results['status'] = data.get('TaskState', data.get('JobState'))
                     operation_results['messages'] = data.get('Messages', [])
                 else:
-                    # Error response body, which is a bit of a misnomer since it's used in successful action responses
+                    # Error response body, which is a bit of a misnomer since it is used in successful action responses
                     operation_results['status'] = 'Completed'
                     if response.status >= 400:
                         operation_results['status'] = 'Exception'
@@ -3951,3 +3952,38 @@ class RedfishUtils(object):
                 "rsp_uri": rsp_uri
             }
         return res
+
+    def get_accountservice_properties(self):
+        # Find the AccountService resource
+        response = self.get_request(self.root_uri + self.service_root)
+        if response['ret'] is False:
+            return response
+        data = response['data']
+        accountservice_uri = data.get("AccountService", {}).get("@odata.id")
+        if accountservice_uri is None:
+            return {'ret': False, 'msg': "AccountService resource not found"}
+
+        response = self.get_request(self.root_uri + accountservice_uri)
+        if response['ret'] is False:
+            return response
+        return {
+            'ret': True,
+            'entries': response['data']
+        }
+
+    def get_power_restore_policy(self, systems_uri):
+        # Retrieve System resource
+        response = self.get_request(self.root_uri + systems_uri)
+        if response['ret'] is False:
+            return response
+        return {
+            'ret': True,
+            'entries': response['data']['PowerRestorePolicy']
+        }
+
+    def get_multi_power_restore_policy(self):
+        return self.aggregate_systems(self.get_power_restore_policy)
+
+    def set_power_restore_policy(self, policy):
+        body = {'PowerRestorePolicy': policy}
+        return self.patch_request(self.root_uri + self.systems_uri, body, check_pyld=True)

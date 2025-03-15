@@ -12,8 +12,15 @@ DOCUMENTATION = r"""
 module: profitbricks
 short_description: Create, destroy, start, stop, and reboot a ProfitBricks virtual machine
 description:
-  - Create, destroy, update, start, stop, and reboot a ProfitBricks virtual machine. When the virtual machine is created it can optionally wait
-    for it to be 'running' before returning. This module has a dependency on profitbricks >= 1.0.0.
+  - Create, destroy, update, start, stop, and reboot a ProfitBricks virtual machine. When the virtual machine is created it
+    can optionally wait for it to be 'running' before returning. This module has a dependency on profitbricks >= 1.0.0.
+deprecated:
+  removed_in: 11.0.0
+  why: Module relies on library unsupported since 2021.
+  alternative: >
+    Profitbricks has rebranded as Ionos Cloud and they provide a collection named ionoscloudsdk.ionoscloud.
+    Whilst it is likely it will provide the features of this module, that has not been verified.
+    Please refer to that collection's documentation for more details.
 extends_documentation_fragment:
   - community.general.attributes
 attributes:
@@ -78,7 +85,7 @@ options:
     choices: ["IDE", "VIRTIO"]
   instance_ids:
     description:
-      - List of instance ids, currently only used when state='absent' to remove instances.
+      - List of instance IDs, currently only used when state='absent' to remove instances.
     type: list
     elements: str
     default: []

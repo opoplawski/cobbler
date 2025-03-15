@@ -75,7 +75,8 @@ options:
     description:
       - SSL/TLS Ciphers to use for the request.
       - When a list is provided, all ciphers are joined in order with V(:).
-      - See the L(OpenSSL Cipher List Format,https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html#CIPHER-LIST-FORMAT) for more details.
+      - See the L(OpenSSL Cipher List Format,https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html#CIPHER-LIST-FORMAT)
+        for more details.
       - The available ciphers is dependent on the Python and OpenSSL/LibreSSL versions.
     type: list
     elements: str
@@ -195,6 +196,14 @@ EXAMPLES = r"""
   community.general.redfish_info:
     category: Systems
     command: GetNicInventory,GetBiosAttributes
+    baseuri: "{{ baseuri }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+
+- name: Get configuration of the AccountService
+  community.general.redfish_info:
+    category: Accounts
+    command: GetAccountServiceConfig
     baseuri: "{{ baseuri }}"
     username: "{{ username }}"
     password: "{{ password }}"
@@ -367,6 +376,14 @@ EXAMPLES = r"""
     username: "{{ username }}"
     password: "{{ password }}"
 
+- name: Get power restore policy
+  community.general.redfish_info:
+    category: Systems
+    command: GetPowerRestorePolicy
+    baseuri: "{{ baseuri }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+
 - name: Check the availability of the service with a timeout of 5 seconds
   community.general.redfish_info:
     category: Service
@@ -393,10 +410,11 @@ CATEGORY_COMMANDS_ALL = {
     "Systems": ["GetSystemInventory", "GetPsuInventory", "GetCpuInventory",
                 "GetMemoryInventory", "GetNicInventory", "GetHealthReport",
                 "GetStorageControllerInventory", "GetDiskInventory", "GetVolumeInventory",
-                "GetBiosAttributes", "GetBootOrder", "GetBootOverride", "GetVirtualMedia", "GetBiosRegistries"],
+                "GetBiosAttributes", "GetBootOrder", "GetBootOverride", "GetVirtualMedia", "GetBiosRegistries",
+                "GetPowerRestorePolicy"],
     "Chassis": ["GetFanInventory", "GetPsuInventory", "GetChassisPower",
                 "GetChassisThermals", "GetChassisInventory", "GetHealthReport", "GetHPEThermalConfig", "GetHPEFanPercentMin"],
-    "Accounts": ["ListUsers"],
+    "Accounts": ["ListUsers", "GetAccountServiceConfig"],
     "Sessions": ["GetSessions"],
     "Update": ["GetFirmwareInventory", "GetFirmwareUpdateCapabilities", "GetSoftwareInventory",
                "GetUpdateStatus"],
@@ -535,6 +553,8 @@ def main():
                     result["virtual_media"] = rf_utils.get_multi_virtualmedia(category)
                 elif command == "GetBiosRegistries":
                     result["bios_registries"] = rf_utils.get_bios_registries()
+                elif command == "GetPowerRestorePolicy":
+                    result["power_restore_policy"] = rf_utils.get_multi_power_restore_policy()
 
         elif category == "Chassis":
             # execute only if we find Chassis resource
@@ -569,6 +589,8 @@ def main():
             for command in command_list:
                 if command == "ListUsers":
                     result["user"] = rf_utils.list_users()
+                elif command == "GetAccountServiceConfig":
+                    result["accountservice_config"] = rf_utils.get_accountservice_properties()
 
         elif category == "Update":
             # execute only if we find UpdateService resources

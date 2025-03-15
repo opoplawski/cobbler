@@ -59,6 +59,18 @@ options:
       - The personal access token to log-in with.
       - Mutually exclusive with O(username) and O(password).
     version_added: 4.2.0
+  client_cert:
+    type: path
+    description:
+      - Client certificate if required.
+      - In addition to O(username) and O(password) or O(token). Not mutually exclusive.
+    version_added: 10.4.0
+  client_key:
+    type: path
+    description:
+      - Client certificate key if required.
+      - In addition to O(username) and O(password) or O(token). Not mutually exclusive.
+    version_added: 10.4.0
 
   project:
     type: str
@@ -122,6 +134,14 @@ options:
     required: false
     description:
       - Only used when O(operation) is V(transition), and a bit of a misnomer, it actually refers to the transition name.
+      - This is mutually exclusive with O(status_id).
+  status_id:
+    type: str
+    required: false
+    description:
+      - Only used when O(operation) is V(transition), and refers to the transition ID.
+      - This is mutually exclusive with O(status).
+    version_added: 10.3.0
   assignee:
     type: str
     required: false
@@ -438,6 +458,23 @@ EXAMPLES = r"""
     operation: attach
     attachment:
       filename: topsecretreport.xlsx
+
+# Use username, password and client certificate authentification
+- name: Create an issue
+  community.general.jira:
+    uri: '{{ server }}'
+    username: '{{ user }}'
+    password: '{{ pass }}'
+    client_cert: '{{ path/to/client-cert }}'
+    client_key: '{{ path/to/client-key }}'
+
+# Use token and client certificate authentification
+- name: Create an issue
+  community.general.jira:
+    uri: '{{ server }}'
+    token: '{{ token }}'
+    client_cert: '{{ path/to/client-cert }}'
+    client_key: '{{ path/to/client-key }}'
 """
 
 import base64
@@ -472,6 +509,8 @@ class JIRA(StateModuleHelper):
             username=dict(type='str'),
             password=dict(type='str', no_log=True),
             token=dict(type='str', no_log=True),
+            client_cert=dict(type='path'),
+            client_key=dict(type='path'),
             project=dict(type='str', ),
             summary=dict(type='str', ),
             description=dict(type='str', ),
@@ -483,6 +522,7 @@ class JIRA(StateModuleHelper):
                 value=dict(type='str', required=True)
             )),
             status=dict(type='str', ),
+            status_id=dict(type='str', ),
             assignee=dict(type='str', ),
             fields=dict(default={}, type='dict'),
             linktype=dict(type='str', ),
@@ -498,9 +538,11 @@ class JIRA(StateModuleHelper):
             ['username', 'token'],
             ['password', 'token'],
             ['assignee', 'account_id'],
+            ['status', 'status_id']
         ],
         required_together=[
             ['username', 'password'],
+            ['client_cert', 'client_key']
         ],
         required_one_of=[
             ['username', 'token'],
@@ -511,7 +553,8 @@ class JIRA(StateModuleHelper):
             ('operation', 'comment', ['issue', 'comment']),
             ('operation', 'workflow', ['issue', 'comment']),
             ('operation', 'fetch', ['issue']),
-            ('operation', 'transition', ['issue', 'status']),
+            ('operation', 'transition', ['issue']),
+            ('operation', 'transition', ['status', 'status_id'], True),
             ('operation', 'link', ['linktype', 'inwardissue', 'outwardissue']),
             ('operation', 'search', ['jql']),
         ),
@@ -616,14 +659,27 @@ class JIRA(StateModuleHelper):
         turl = self.vars.restbase + '/issue/' + self.vars.issue + "/transitions"
         tmeta = self.get(turl)
 
-        target = self.vars.status
         tid = None
+        target = None
+
+        if self.vars.status is not None:
+            target = self.vars.status.strip()
+        elif self.vars.status_id is not None:
+            tid = self.vars.status_id.strip()
+
         for t in tmeta['transitions']:
-            if t['name'] == target:
-                tid = t['id']
-                break
+            if target is not None:
+                if t['name'] == target:
+                    tid = t['id']
+                    break
+            else:
+                if tid == t['id']:
+                    break
         else:
-            raise ValueError("Failed find valid transition for '%s'" % target)
+            if target is not None:
+                raise ValueError("Failed find valid transition for '%s'" % target)
+            else:
+                raise ValueError("Failed find valid transition for ID '%s'" % tid)
 
         fields = dict(self.vars.fields)
         if self.vars.summary is not None:

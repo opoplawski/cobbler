@@ -17,14 +17,16 @@ short_description: Allows administration of Keycloak realm using Keycloak API
 version_added: 3.0.0
 
 description:
-  - This module allows the administration of Keycloak realm using the Keycloak REST API. It requires access to the REST API using OpenID Connect;
-    the user connecting and the realm being used must have the requisite access rights. In a default Keycloak installation, admin-cli and an admin
-    user would work, as would a separate realm definition with the scope tailored to your needs and a user having the expected roles.
-  - The names of module options are snake_cased versions of the camelCase ones found in the Keycloak API and its documentation at
-    U(https://www.keycloak.org/docs-api/8.0/rest-api/index.html).
-    Aliases are provided so camelCased versions can be used as well.
-  - The Keycloak API does not always sanity check inputs, for example you can set SAML-specific settings on an OpenID Connect client for instance and
-    also the other way around. B(Be careful). If you do not specify a setting, usually a sensible default is chosen.
+  - This module allows the administration of Keycloak realm using the Keycloak REST API. It requires access to the REST API
+    using OpenID Connect; the user connecting and the realm being used must have the requisite access rights. In a default
+    Keycloak installation, admin-cli and an admin user would work, as would a separate realm definition with the scope tailored
+    to your needs and a user having the expected roles.
+  - The names of module options are snake_cased versions of the camelCase ones found in the Keycloak API and its documentation
+    at U(https://www.keycloak.org/docs-api/8.0/rest-api/index.html). Aliases are provided so camelCased versions can be used
+    as well.
+  - The Keycloak API does not always sanity check inputs, for example you can set SAML-specific settings on an OpenID Connect
+    client for instance and also the other way around. B(Be careful). If you do not specify a setting, usually a sensible
+    default is chosen.
 attributes:
   check_mode:
     support: full
@@ -526,8 +528,7 @@ EXAMPLES = r"""
     auth_realm: master
     auth_username: USERNAME
     auth_password: PASSWORD
-    id: realm
-    realm: realm
+    realm: unique_realm_name
     state: present
 
 - name: Delete a Keycloak realm
@@ -537,7 +538,7 @@ EXAMPLES = r"""
     auth_realm: master
     auth_username: USERNAME
     auth_password: PASSWORD
-    id: test
+    realm: unique_realm_name
     state: absent
 """
 
@@ -552,7 +553,7 @@ proposed:
   description: Representation of proposed realm.
   returned: always
   type: dict
-  sample: {id: "test"}
+  sample: {realm: "test"}
 
 existing:
   description: Representation of existing realm (sample is truncated).
@@ -705,7 +706,9 @@ def main():
                            supports_check_mode=True,
                            required_one_of=([['id', 'realm', 'enabled'],
                                              ['token', 'auth_realm', 'auth_username', 'auth_password']]),
-                           required_together=([['auth_realm', 'auth_username', 'auth_password']]))
+                           required_together=([['auth_realm', 'auth_username', 'auth_password']]),
+                           required_by={'refresh_token': 'auth_realm'},
+                           )
 
     result = dict(changed=False, msg='', diff={}, proposed={}, existing={}, end_state={})
 
@@ -763,9 +766,6 @@ def main():
         # Process a creation
         result['changed'] = True
 
-        if 'id' not in desired_realm:
-            module.fail_json(msg='id needs to be specified when creating a new realm')
-
         if module._diff:
             result['diff'] = dict(before='', after=sanitize_cr(desired_realm))
 
@@ -774,11 +774,11 @@ def main():
 
         # create it
         kc.create_realm(desired_realm)
-        after_realm = kc.get_realm_by_id(desired_realm['id'])
+        after_realm = kc.get_realm_by_id(desired_realm['realm'])
 
         result['end_state'] = sanitize_cr(after_realm)
 
-        result['msg'] = 'Realm %s has been created.' % desired_realm['id']
+        result['msg'] = 'Realm %s has been created.' % desired_realm['realm']
         module.exit_json(**result)
 
     else:
@@ -812,7 +812,7 @@ def main():
                 result['diff'] = dict(before=before_realm_sanitized,
                                       after=sanitize_cr(after_realm))
 
-            result['msg'] = 'Realm %s has been updated.' % desired_realm['id']
+            result['msg'] = 'Realm %s has been updated.' % desired_realm['realm']
             module.exit_json(**result)
 
         else:
@@ -831,7 +831,7 @@ def main():
             result['proposed'] = {}
             result['end_state'] = {}
 
-            result['msg'] = 'Realm %s has been deleted.' % before_realm['id']
+            result['msg'] = 'Realm %s has been deleted.' % before_realm['realm']
 
     module.exit_json(**result)
 

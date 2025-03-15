@@ -5,64 +5,67 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Make coding more python3-ish
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+from __future__ import annotations
 
-DOCUMENTATION = '''
-    author: Unknown (!UNKNOWN)
-    name: slack
-    type: notification
-    requirements:
-      - whitelist in configuration
-      - prettytable (python library)
-    short_description: Sends play events to a Slack channel
+DOCUMENTATION = r"""
+author: Unknown (!UNKNOWN)
+name: slack
+type: notification
+requirements:
+  - whitelist in configuration
+  - prettytable (python library)
+short_description: Sends play events to a Slack channel
+description:
+  - This is an ansible callback plugin that sends status updates to a Slack channel during playbook execution.
+options:
+  http_agent:
     description:
-        - This is an ansible callback plugin that sends status updates to a Slack channel during playbook execution.
-    options:
-      webhook_url:
-        required: true
-        description: Slack Webhook URL.
-        type: str
-        env:
-          - name: SLACK_WEBHOOK_URL
-        ini:
-          - section: callback_slack
-            key: webhook_url
-      channel:
-        default: "#ansible"
-        description: Slack room to post in.
-        type: str
-        env:
-          - name: SLACK_CHANNEL
-        ini:
-          - section: callback_slack
-            key: channel
-      username:
-        description: Username to post as.
-        type: str
-        env:
-          - name: SLACK_USERNAME
-        default: ansible
-        ini:
-          - section: callback_slack
-            key: username
-      validate_certs:
-        description: Validate the SSL certificate of the Slack server for HTTPS URLs.
-        env:
-          - name: SLACK_VALIDATE_CERTS
-        ini:
-          - section: callback_slack
-            key: validate_certs
-        default: true
-        type: bool
-'''
+      - HTTP user agent to use for requests to Slack.
+    type: string
+    version_added: "10.5.0"
+  webhook_url:
+    required: true
+    description: Slack Webhook URL.
+    type: str
+    env:
+      - name: SLACK_WEBHOOK_URL
+    ini:
+      - section: callback_slack
+        key: webhook_url
+  channel:
+    default: "#ansible"
+    description: Slack room to post in.
+    type: str
+    env:
+      - name: SLACK_CHANNEL
+    ini:
+      - section: callback_slack
+        key: channel
+  username:
+    description: Username to post as.
+    type: str
+    env:
+      - name: SLACK_USERNAME
+    default: ansible
+    ini:
+      - section: callback_slack
+        key: username
+  validate_certs:
+    description: Validate the SSL certificate of the Slack server for HTTPS URLs.
+    env:
+      - name: SLACK_VALIDATE_CERTS
+    ini:
+      - section: callback_slack
+        key: validate_certs
+    default: true
+    type: bool
+"""
 
 import json
 import os
 import uuid
 
 from ansible import context
-from ansible.module_utils.common.text.converters import to_text
 from ansible.module_utils.urls import open_url
 from ansible.plugins.callback import CallbackBase
 
@@ -108,7 +111,7 @@ class CallbackModule(CallbackBase):
         self.username = self.get_option('username')
         self.show_invocation = (self._display.verbosity > 1)
         self.validate_certs = self.get_option('validate_certs')
-
+        self.http_agent = self.get_option('http_agent')
         if self.webhook_url is None:
             self.disabled = True
             self._display.warning('Slack Webhook URL was not provided. The '
@@ -134,11 +137,16 @@ class CallbackModule(CallbackBase):
         self._display.debug(data)
         self._display.debug(self.webhook_url)
         try:
-            response = open_url(self.webhook_url, data=data, validate_certs=self.validate_certs,
-                                headers=headers)
+            response = open_url(
+                self.webhook_url,
+                data=data,
+                validate_certs=self.validate_certs,
+                headers=headers,
+                http_agent=self.http_agent,
+            )
             return response.read()
         except Exception as e:
-            self._display.warning(f'Could not submit message to Slack: {to_text(e)}')
+            self._display.warning(f'Could not submit message to Slack: {e}')
 
     def v2_playbook_on_start(self, playbook):
         self.playbook_name = os.path.basename(playbook._file_name)

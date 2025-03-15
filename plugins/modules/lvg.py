@@ -34,12 +34,13 @@ options:
       - List of comma-separated devices to use as physical devices in this volume group.
       - Required when creating or resizing volume group.
       - The module will take care of running pvcreate if needed.
+      - O(remove_extra_pvs) controls whether or not unspecified physical devices are removed from the volume group.
     type: list
     elements: str
   pesize:
     description:
-      - The size of the physical extent. O(pesize) must be a power of 2 of at least 1 sector (where the sector size is the largest sector size
-        of the PVs currently used in the VG), or at least 128KiB.
+      - The size of the physical extent. O(pesize) must be a power of 2 of at least 1 sector (where the sector size is the
+        largest sector size of the PVs currently used in the VG), or at least 128KiB.
       - O(pesize) can be optionally suffixed by a UNIT (k/K/m/M/g/G), default unit is megabyte.
     type: str
     default: "4"
@@ -61,10 +62,11 @@ options:
     default: ''
   state:
     description:
-      - Control if the volume group exists and it's state.
+      - Control if the volume group exists and its state.
       - The states V(active) and V(inactive) implies V(present) state. Added in 7.1.0.
-      - If V(active) or V(inactive), the module manages the VG's logical volumes current state. The module also handles the VG's autoactivation
-        state if supported unless when creating a volume group and the autoactivation option specified in O(vg_options).
+      - If V(active) or V(inactive), the module manages the VG's logical volumes current state. The module also handles the
+        VG's autoactivation state if supported unless when creating a volume group and the autoactivation option specified
+        in O(vg_options).
     type: str
     choices: [absent, present, active, inactive]
     default: present
@@ -87,6 +89,12 @@ options:
     type: bool
     default: false
     version_added: 7.1.0
+  remove_extra_pvs:
+    description:
+      - Remove physical volumes from the volume group which are not in O(pvs).
+    type: bool
+    default: true
+    version_added: 10.4.0
 seealso:
   - module: community.general.filesystem
   - module: community.general.lvol
@@ -382,6 +390,7 @@ def main():
             force=dict(type='bool', default=False),
             reset_vg_uuid=dict(type='bool', default=False),
             reset_pv_uuid=dict(type='bool', default=False),
+            remove_extra_pvs=dict(type="bool", default=True),
         ),
         required_if=[
             ['reset_pv_uuid', True, ['pvs']],
@@ -398,6 +407,7 @@ def main():
     vgoptions = module.params['vg_options'].split()
     reset_vg_uuid = module.boolean(module.params['reset_vg_uuid'])
     reset_pv_uuid = module.boolean(module.params['reset_pv_uuid'])
+    remove_extra_pvs = module.boolean(module.params["remove_extra_pvs"])
 
     this_vg = find_vg(module=module, vg=vg)
     present_state = state in ['present', 'active', 'inactive']
@@ -492,6 +502,9 @@ def main():
             current_devs = [os.path.realpath(pv['name']) for pv in pvs if pv['vg_name'] == vg]
             devs_to_remove = list(set(current_devs) - set(dev_list))
             devs_to_add = list(set(dev_list) - set(current_devs))
+
+            if not remove_extra_pvs:
+                devs_to_remove = []
 
             if current_devs:
                 if present_state:

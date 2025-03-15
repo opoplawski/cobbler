@@ -12,7 +12,15 @@ DOCUMENTATION = r"""
 module: profitbricks_volume
 short_description: Create or destroy a volume
 description:
-  - Allows you to create or remove a volume from a ProfitBricks datacenter. This module has a dependency on profitbricks >= 1.0.0.
+  - Allows you to create or remove a volume from a ProfitBricks datacenter. This module has a dependency on profitbricks >=
+    1.0.0.
+deprecated:
+  removed_in: 11.0.0
+  why: Module relies on library unsupported since 2021.
+  alternative: >
+    Profitbricks has rebranded as Ionos Cloud and they provide a collection named ionoscloudsdk.ionoscloud.
+    Whilst it is likely it will provide the features of this module, that has not been verified.
+    Please refer to that collection's documentation for more details.
 extends_documentation_fragment:
   - community.general.attributes
 attributes:
@@ -44,7 +52,8 @@ options:
     choices: ["IDE", "VIRTIO"]
   image:
     description:
-      - The system image ID for the volume, for example V(a3eae284-a2fe-11e4-b187-5f1f641608c8). This can also be a snapshot image ID.
+      - The system image ID for the volume, for example V(a3eae284-a2fe-11e4-b187-5f1f641608c8). This can also be a snapshot
+        image ID.
     type: str
   image_password:
     description:
@@ -84,7 +93,7 @@ options:
     type: bool
   instance_ids:
     description:
-      - List of instance ids, currently only used when state='absent' to remove instances.
+      - List of instance IDs, currently only used when O(state=absent) to remove instances.
     type: list
     elements: str
     default: []

@@ -111,6 +111,9 @@ files:
   $connections/lxd.py:
     labels: lxd
     maintainers: mattclay
+  $connections/proxmox_pct_remote.py:
+    labels: proxmox
+    maintainers: mietzen
   $connections/qubes.py:
     maintainers: kushaldas
   $connections/saltstack.py:
@@ -120,6 +123,8 @@ files:
     maintainers: $team_ansible_core
   $doc_fragments/:
     labels: docs_fragments
+  $doc_fragments/clc.py:
+    maintainers: clc-runner russoz
   $doc_fragments/django.py:
     maintainers: russoz
   $doc_fragments/hpe3par.py:
@@ -159,6 +164,14 @@ files:
     maintainers: Ajpantuso
   $filters/jc.py:
     maintainers: kellyjonbrazil
+  $filters/json_diff.yml:
+    maintainers: numo68
+  $filters/json_patch.py:
+    maintainers: numo68
+  $filters/json_patch.yml:
+    maintainers: numo68
+  $filters/json_patch_recipe.yml:
+    maintainers: numo68
   $filters/json_query.py: {}
   $filters/keep_keys.py:
     maintainers: vbotka
@@ -294,6 +307,8 @@ files:
   $lookups/onepassword_raw.py:
     ignore: scottsb
     maintainers: azenk
+  $lookups/onepassword_ssh_key.py:
+    maintainers: mohammedbabelly20
   $lookups/passwordstore.py: {}
   $lookups/random_pet.py:
     maintainers: Akasurde
@@ -363,6 +378,8 @@ files:
   $module_utils/oracle/oci_utils.py:
     labels: cloud
     maintainers: $team_oracle
+  $module_utils/pacemaker.py:
+    maintainers: munchtoast
   $module_utils/pipx.py:
     labels: pipx
     maintainers: russoz
@@ -387,6 +404,8 @@ files:
     maintainers: russoz
   $module_utils/ssh.py:
     maintainers: russoz
+  $module_utils/systemd.py:
+    maintainers: NomakCooper
   $module_utils/storage/hpe3par/hpe3par.py:
     maintainers: farhan7500 gautamphegde
   $module_utils/utm_utils.py:
@@ -456,7 +475,7 @@ files:
   $modules/bearychat.py:
     maintainers: tonyseek
   $modules/bigpanda.py:
-    maintainers: hkariti
+    ignore: hkariti
   $modules/bitbucket_:
     maintainers: catcombo
   $modules/bootc_manage.py:
@@ -856,6 +875,8 @@ files:
     maintainers: drybjed jtyr noles
   $modules/ldap_entry.py:
     maintainers: jtyr
+  $modules/ldap_inc.py:
+    maintainers: pduveau
   $modules/ldap_passwd.py:
     maintainers: KellerFuchs jtyr
   $modules/ldap_search.py:
@@ -1037,6 +1058,8 @@ files:
     maintainers: fraff
   $modules/pacemaker_cluster.py:
     maintainers: matbu
+  $modules/pacemaker_resource.py:
+    maintainers: munchtoast
   $modules/packet_:
     maintainers: nurfet-becirevic t0mk
   $modules/packet_device.py:
@@ -1129,6 +1152,8 @@ files:
     maintainers: helldorado krauthosting
   $modules/proxmox_backup.py:
     maintainers: IamLunchbox
+  $modules/proxmox_backup_info.py:
+    maintainers: raoufnezhad mmayabi
   $modules/proxmox_nic.py:
     maintainers: Kogelvis krauthosting
   $modules/proxmox_node_info.py:
@@ -1341,6 +1366,12 @@ files:
     maintainers: precurse
   $modules/sysrc.py:
     maintainers: dlundgren
+  $modules/systemd_creds_decrypt.py:
+    maintainers: konstruktoid
+  $modules/systemd_creds_encrypt.py:
+    maintainers: konstruktoid
+  $modules/systemd_info.py:
+    maintainers: NomakCooper
   $modules/sysupgrade.py:
     maintainers: precurse
   $modules/taiga_issue.py:
@@ -1372,16 +1403,19 @@ files:
     keywords: sophos utm
     maintainers: $team_e_spirit
   $modules/utm_ca_host_key_cert.py:
-    maintainers: stearz
+    ignore: stearz
+    maintainers: $team_e_spirit
   $modules/utm_ca_host_key_cert_info.py:
-    maintainers: stearz
+    ignore: stearz
+    maintainers: $team_e_spirit
   $modules/utm_network_interface_address.py:
     maintainers: steamx
   $modules/utm_network_interface_address_info.py:
     maintainers: steamx
   $modules/utm_proxy_auth_profile.py:
     keywords: sophos utm
-    maintainers: $team_e_spirit stearz
+    ignore: stearz
+    maintainers: $team_e_spirit
   $modules/utm_proxy_exception.py:
     keywords: sophos utm
     maintainers: $team_e_spirit RickS-C137
@@ -1517,6 +1551,8 @@ files:
     maintainers: baldwinSPC nurfet-becirevic t0mk teebes
   docs/docsite/rst/guide_scaleway.rst:
     maintainers: $team_scaleway
+  docs/docsite/rst/guide_uthelper.rst:
+    maintainers: russoz
   docs/docsite/rst/guide_vardict.rst:
     maintainers: russoz
   docs/docsite/rst/test_guide.rst:

@@ -136,7 +136,7 @@ options:
   storage_subsystem_id:
     required: false
     description:
-      - Id of the Storage Subsystem on which the volume is to be created.
+      - ID of the Storage Subsystem on which the volume is to be created.
     type: str
     default: ''
     version_added: '7.3.0'
@@ -166,17 +166,27 @@ options:
     required: false
     description:
       - Setting dict of volume to be created.
-      - If C(CapacityBytes) key is not specified in this dictionary, the size of the volume will be determined by the Redfish service. It is possible
-        the size will not be the maximum available size.
+      - If C(CapacityBytes) key is not specified in this dictionary, the size of the volume will be determined by the Redfish
+        service. It is possible the size will not be the maximum available size.
     type: dict
     default: {}
     version_added: '7.5.0'
+  power_restore_policy:
+    description:
+      - The desired power state of the system when power is restored after a power loss.
+    type: str
+    choices:
+      - AlwaysOn
+      - AlwaysOff
+      - LastState
+    version_added: '10.5.0'
   ciphers:
     required: false
     description:
       - SSL/TLS Ciphers to use for the request.
       - When a list is provided, all ciphers are joined in order with V(:).
-      - See the L(OpenSSL Cipher List Format,https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html#CIPHER-LIST-FORMAT) for more details.
+      - See the L(OpenSSL Cipher List Format,https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html#CIPHER-LIST-FORMAT)
+        for more details.
       - The available ciphers is dependent on the Python and OpenSSL/LibreSSL versions.
     type: list
     elements: str
@@ -357,6 +367,15 @@ EXAMPLES = r"""
       Drives:
         - "/redfish/v1/Systems/1/Storage/DE00B000/Drives/1"
 
+- name: Set PowerRestorePolicy
+  community.general.redfish_config:
+    category: Systems
+    command: SetPowerRestorePolicy
+    baseuri: "{{ baseuri }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    power_restore_policy: "AlwaysOff"
+
 - name: Set service identification to {{ service_id }}
   community.general.redfish_config:
     category: Manager
@@ -383,7 +402,8 @@ from ansible.module_utils.common.text.converters import to_native
 # More will be added as module features are expanded
 CATEGORY_COMMANDS_ALL = {
     "Systems": ["SetBiosDefaultSettings", "SetBiosAttributes", "SetBootOrder",
-                "SetDefaultBootOrder", "EnableSecureBoot", "SetSecureBoot", "DeleteVolumes", "CreateVolume"],
+                "SetDefaultBootOrder", "EnableSecureBoot", "SetSecureBoot", "DeleteVolumes", "CreateVolume",
+                "SetPowerRestorePolicy"],
     "Manager": ["SetNetworkProtocols", "SetManagerNic", "SetHostInterface", "SetServiceIdentification"],
     "Sessions": ["SetSessionService"],
 }
@@ -422,6 +442,7 @@ def main():
             volume_ids=dict(type='list', default=[], elements='str'),
             secure_boot_enable=dict(type='bool', default=True),
             volume_details=dict(type='dict', default={}),
+            power_restore_policy=dict(choices=['AlwaysOn', 'AlwaysOff', 'LastState']),
             ciphers=dict(type='list', elements='str'),
         ),
         required_together=[
@@ -487,6 +508,9 @@ def main():
     storage_subsystem_id = module.params['storage_subsystem_id']
     storage_none_volume_deletion = module.params['storage_none_volume_deletion']
 
+    # Power Restore Policy
+    power_restore_policy = module.params['power_restore_policy']
+
     # ciphers
     ciphers = module.params['ciphers']
 
@@ -530,6 +554,8 @@ def main():
                 result = rf_utils.delete_volumes(storage_subsystem_id, volume_ids)
             elif command == "CreateVolume":
                 result = rf_utils.create_volume(volume_details, storage_subsystem_id, storage_none_volume_deletion)
+            elif command == "SetPowerRestorePolicy":
+                result = rf_utils.set_power_restore_policy(power_restore_policy)
 
     elif category == "Manager":
         # execute only if we find a Manager service resource

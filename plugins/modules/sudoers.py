@@ -52,7 +52,7 @@ options:
     version_added: 8.4.0
   nopassword:
     description:
-      - Whether a password will be required to run the sudo'd command.
+      - Whether a password is required when command is run with sudo.
     default: true
     type: bool
   setenv:
@@ -246,7 +246,7 @@ class Sudoers(object):
         rc, stdout, stderr = self.module.run_command(check_command, data=self.content())
 
         if rc != 0:
-            raise Exception('Failed to validate sudoers rule:\n{stdout}'.format(stdout=stdout))
+            self.module.fail_json(msg='Failed to validate sudoers rule:\n{stdout}'.format(stdout=stdout or stderr), stdout=stdout, stderr=stderr)
 
     def run(self):
         if self.state == 'absent':

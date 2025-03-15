@@ -3,8 +3,7 @@
 # GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+from __future__ import annotations
 
 DOCUMENTATION = '''
     author: Unknown (!UNKNOWN)
@@ -87,6 +86,11 @@ DOCUMENTATION = '''
             type: boolean
             default: false
             version_added: 6.1.0
+        dns_servers:
+            description: Specify which DNS servers to use for name resolution.
+            type: list
+            elements: string
+            version_added: 10.5.0
         use_arp_ping:
             description: Whether to always (V(true)) use the quick ARP ping or (V(false)) a slower but more reliable method.
             type: boolean
@@ -97,18 +101,20 @@ DOCUMENTATION = '''
         - 'TODO: add OS fingerprinting'
 '''
 EXAMPLES = '''
+---
 # inventory.config file in YAML format
 plugin: community.general.nmap
 strict: false
 address: 192.168.0.0/24
 
-
+---
 # a sudo nmap scan to fully use nmap scan power.
 plugin: community.general.nmap
 sudo: true
 strict: false
 address: 192.168.0.0/24
 
+---
 # an nmap scan specifying ports and classifying results to an inventory group
 plugin: community.general.nmap
 address: 192.168.0.0/24
@@ -178,7 +184,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
         try:
             self._nmap = get_bin_path('nmap')
         except ValueError as e:
-            raise AnsibleParserError(f'nmap inventory plugin requires the nmap cli tool to work: {to_native(e)}')
+            raise AnsibleParserError(f'nmap inventory plugin requires the nmap cli tool to work: {e}')
 
         super(InventoryModule, self).parse(inventory, loader, path, cache=cache)
 
@@ -230,6 +236,10 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             if self.get_option('dns_resolve'):
                 cmd.append('-n')
 
+            if self.get_option('dns_servers'):
+                cmd.append('--dns-servers')
+                cmd.append(','.join(self.get_option('dns_servers')))
+
             if self.get_option('udp_scan'):
                 cmd.append('-sU')
 
@@ -259,7 +269,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                 try:
                     t_stdout = to_text(stdout, errors='surrogate_or_strict')
                 except UnicodeError as e:
-                    raise AnsibleParserError(f'Invalid (non unicode) input returned: {to_native(e)}')
+                    raise AnsibleParserError(f'Invalid (non unicode) input returned: {e}')
 
                 for line in t_stdout.splitlines():
                     hits = self.find_host.match(line)
@@ -300,7 +310,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                     results[-1]['ports'] = ports
 
             except Exception as e:
-                raise AnsibleParserError(f"failed to parse {to_native(path)}: {to_native(e)} ")
+                raise AnsibleParserError(f"failed to parse {to_native(path)}: {e} ")
 
         if cache_needs_update:
             self._cache[cache_key] = results
