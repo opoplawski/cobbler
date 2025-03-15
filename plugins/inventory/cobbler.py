@@ -412,11 +412,6 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
                 key = "autoinstall_meta"
                 all_data = host
 
-            try:
-                self.inventory.set_variable(hostname, 'cobbler', make_unsafe(all_data))
-            except ValueError as e:
-                self.display.warning(f"Could not set host info for {hostname}: {to_text(e)}")
-
             if self.get_option('want_facts'):
                 try:
                     self.inventory.set_variable(hostname, 'cobbler', make_unsafe(host))
