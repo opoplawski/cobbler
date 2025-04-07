@@ -211,6 +211,16 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
                     data = self.cobbler_connection.get_systems(self.token)
                 else:
                     data = self.cobbler_connection.get_systems()
+
+                # If more facts are requested, gather them all from Cobbler
+                if self.facts_level == "as_rendered":
+                    for host in data:
+                        self.display.vvvv(f"Gathering all facts for {host['name']}\n")
+                        if self.token is not None:
+                            data[host] = self.cobbler_connection.get_system_as_rendered(host['name'], self.token)
+                        else:
+                            data[host] = self.cobbler_connection.get_system_as_rendered(host['name'])
+
             except (socket.gaierror, socket.error, xmlrpc_client.ProtocolError):
                 self._reload_cache()
             else:
@@ -383,32 +393,6 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
                 ipv6_address = ipv6_address_first
             if ipv6_address is not None:
                 self.inventory.set_variable(hostname, 'cobbler_ipv6_address', make_unsafe(ipv6_address))
-
-            # If more facts are requested, gather them all from Cobbler
-            if self.facts_level == "as_rendered":
-                self.display.vvvv(f"Gathering all facts for {hostname}\n")
-                key = "mgmt_parameters"
-                if self.token is not None:
-                    all_data = self.cobbler_connection.get_system_as_rendered(host['name'], self.token)
-                else:
-                    all_data = self.cobbler_connection.get_system_as_rendered(host['name'])
-
-                # If user requests extra groups to be added to the Cobbler inventory,
-                if self.extra_groups:
-                    # Gather each extra group, split by ',' or ' '
-                    for extra_group in self.extra_groups:
-                        try:
-                            # Gather each value of the extra group, split by ',' or ' '
-                            # e.g. profile_role: 'test1,test2'
-                            for entry in split(',| ', all_data[key][extra_group]):
-                                self.display.vvvv(f"Added {hostname} to group {entry}")
-                                self._add_safe_group_name(entry, child=hostname)
-                        except KeyError as e:
-                            self.display.vvvv(f"Could not find {e} value for {hostname}")
-
-            elif self.facts_level == "normal":
-                key = "autoinstall_meta"
-                all_data = host
 
             if self.get_option('want_facts'):
                 try:
