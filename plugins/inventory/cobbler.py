@@ -159,7 +159,15 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
     def __init__(self):
         super(InventoryModule, self).__init__()
         self.cache_key = None
-        self.cobbler_connection = None
+
+        if not HAS_XMLRPC_CLIENT:
+            raise AnsibleError('Could not import xmlrpc client library')
+
+        self.display.vvvv(f'Connecting to {self.cobbler_url}\n')
+        self.cobbler_connection = xmlrpc_client.Server(self.cobbler_url, allow_none=True)
+        self.token = None
+        if self.get_option('user') is not None:
+            self.token = self.cobbler_connection.login(text_type(self.get_option('user')), text_type(self.get_option('password')))
 
     def verify_file(self, path):
         valid = False
@@ -169,18 +177,6 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
             else:
                 self.display.vvv('Skipping due to inventory source not ending in "cobbler.yaml" nor "cobbler.yml"')
         return valid
-
-    def _get_connection(self):
-        if not HAS_XMLRPC_CLIENT:
-            raise AnsibleError('Could not import xmlrpc client library')
-
-        if self.cobbler_connection is None:
-            self.display.vvvv(f'Connecting to {self.cobbler_url}\n')
-            self.cobbler_connection = xmlrpc_client.Server(self.cobbler_url, allow_none=True)
-            self.token = None
-            if self.get_option('user') is not None:
-                self.token = self.cobbler_connection.login(text_type(self.get_option('user')), text_type(self.get_option('password')))
-        return self.cobbler_connection
 
     def _init_cache(self):
         if self.cache_key not in self._cache:
@@ -195,12 +191,11 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
 
     def _get_profiles(self):
         if not self.use_cache or 'profiles' not in self._cache.get(self.cache_key, {}):
-            self.local_connection = self._get_connection()
             try:
                 if self.token is not None:
-                    data = self.local_connection.get_profiles(self.token)
+                    data = self.cobbler_connection.get_profiles(self.token)
                 else:
-                    data = self.local_connection.get_profiles()
+                    data = self.cobbler_connection.get_profiles()
             except (socket.gaierror, socket.error, xmlrpc_client.ProtocolError):
                 self._reload_cache()
             else:
@@ -213,9 +208,9 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
         if not self.use_cache or 'systems' not in self._cache.get(self.cache_key, {}):
             try:
                 if self.token is not None:
-                    data = self.local_connection.get_systems(self.token)
+                    data = self.cobbler_connection.get_systems(self.token)
                 else:
-                    data = self.local_connection.get_systems()
+                    data = self.cobbler_connection.get_systems()
             except (socket.gaierror, socket.error, xmlrpc_client.ProtocolError):
                 self._reload_cache()
             else:
@@ -394,9 +389,9 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
                 self.display.vvvv(f"Gathering all facts for {hostname}\n")
                 key = "mgmt_parameters"
                 if self.token is not None:
-                    all_data = self.local_connection.get_system_as_rendered(host['name'], self.token)
+                    all_data = self.cobbler_connection.get_system_as_rendered(host['name'], self.token)
                 else:
-                    all_data = self.local_connection.get_system_as_rendered(host['name'])
+                    all_data = self.cobbler_connection.get_system_as_rendered(host['name'])
 
                 # If user requests extra groups to be added to the Cobbler inventory,
                 if self.extra_groups:
